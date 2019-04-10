@@ -1,0 +1,240 @@
+
+
+- name: install or upgrade openjdk 1.8
+  yum:
+    name: java-1.8.*-openjdk
+    state: latest
+
+#- name: Download CIS-CAT shell script
+
+#- name: giving execure permission
+#  file:
+#    path: /tmp/CIS-CAT.sh
+#    mode: 0755
+
+#- name: Executing CIS-CAT.sh and returing the result
+#  shell: CIS-CAT.sh -b benchmarks/CIS_CentOS_Linux_7_Benchmark_v2.2.0-xccdf.xml
+#  register: command_output_full
+#  args:
+#    chdir: /tmp/
+
+#- debug: msg="{{ command_output }}"
+
+- name: aide runs at 5. Creates an entry like "0 5 * * /usr/sbin/aide --check > /dev/null"
+  cron:
+    name: "aide"
+    minute: "0"
+    hour: "5"
+    job: "/usr/sbin/aide --check > /dev/null"
+
+- name: giving permission to grub
+  file:
+    path: /boot/grub2/grub.cfg
+    mode: 0600
+    owner: root
+    group: root 
+
+- name: 1.5.3 Ensure address space layout randomization (ASLR) is enabled
+  lineinfile:
+    path: /etc/sysctl.conf
+    regexp: '^kernel.randomize_va_space'
+    line: 'kernel.randomize_va_space = 2'
+
+- name: Run the following command to set the active kernel parameter
+  command: sysctl -w kernel.randomize_va_space=2
+
+- name: remove the X Windows System packages
+  yum:
+    name: xorg-x11*
+    state: absent
+
+#- name: /etc/hosts.deny is configured to deny
+#  lineinfile:
+#    path: /etc/hosts.deny
+#    regexp: '^ALL:'
+#    line: 'ALL: ALL'
+
+#- name: commands to implement a default DROP policy
+#  iptables:
+#    #chain: ['INPUT', 'OUTPUT', 'FORWARD']
+#    chain: INPUT
+#    jump: DROP
+
+#- name: rsyslog is configured to send logs to a remote log host
+#  lineinfile:
+#    path: /etc/rsyslog.conf
+#    regexp: '#*.* @@remote-host:514'
+#    line: '*.* @@loghost.example.com'
+
+#- name: command to restart rsyslog
+#  command: pkill -HUP rsyslogd
+#  ignore_errors: yes
+
+- name: giving permission to cron.d
+  file:
+    path: /etc/cron.d
+    mode: 0700
+    owner: root
+    group: root
+
+- name: remove /etc/cron.deny and /etc/at.deny 
+  file:
+    path: ['/etc/cron.deny', '/etc/at.deny']
+    state: absent
+
+- name: create and set permissions and ownership for /etc/cron.allow
+  file:
+    path: /etc/cron.allow
+    state: touch
+    owner: root
+    group: root
+    mode: 0600
+
+- name: create and set permissions and ownership for /etc/at.allow
+  file:
+    path: /etc/at.allow
+    state: touch
+    owner: root
+    group: root
+    mode: 0600
+
+- name: set X11Forwarding to no in sshd
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^X11Forwarding'
+    line: 'X11Forwarding no'
+ 
+- name: set ClientAliveInterval to 300 in sshd
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^ClientAliveInterval'
+    line: 'ClientAliveInterval 300'
+
+- name: set ClientAliveCountMax to 0 in sshd
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^ClientAliveCountMax'
+    line: 'ClientAliveCountMax 0'
+
+- name: command to set the default password inactivity period to 30 days
+  command: useradd -D -f 30
+
+- name: Modify user parameters for all users with a password set to match
+  command: chage --inactive 30 centos
+
+- name: Modify user parameters for all users with a password set to match
+  command: chage --inactive 30 operations
+
+- name: Modify user parameters for all users with a password set to match
+  command: chage --inactive 30 splunk
+
+- name: set unmask on /etc/bashrc
+  lineinfile:
+    path: /etc/bashrc
+    regexp: 'umask 002'
+    line: 'umask 027'
+
+- name: set unmask on /etc/profile
+  lineinfile:
+    path: /etc/profile
+    regexp: 'umask 002'
+    line: 'umask 027'
+
+- name: remove the X Windows System packages
+  yum:
+    name: ['GeoIP.x86_64', 'collector-sidecar.x86_64', 'bind-libs.x86_64', 'bind-libs-lite.x86_64', 'bind-utils.x86_64', 'dhclient.x86_64', 'dracut-network.x86_64', 'kexec-tools.x86_64', 'openscap-1.2.16-8.el7_5.x86_64', 'openscap-scanner-1.2.16-8.el7_5.x86_64', 'chtcollectd-5.4.0+20180924013154-1.el6.x86_64GGGG']
+    state: absent
+
+- name: remove finch-user user
+  user:
+    name: finch-user
+    state: absent
+    remove: yes
+
+- name: Download qualys agent
+  command: aws s3 cp s3://csbs-cis/qualys-cloud-agent.x86_64.rpm /opt
+
+- name: Installed qualys agent
+  command: yum install -y /opt/qualys-cloud-agent.x86_64.rpm
+
+- name: Download splunk agent
+  command: aws s3 cp s3://csbs-cis/splunk_6.6.3_current/splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-x86_64.rpm /opt
+
+- name: Installed qualys agent
+  command: yum install -y /opt/splunk_6.6.3_current/splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-x86_64.rpm
+  
+- name: Changing permission to splunkforwarder
+  file:
+    path: /opt/splunkforwarder
+    recurse: yes
+    owner: splunk
+    group: splunk
+
+- name: splunk accept-license
+  command: /opt/splunkforwarder/bin/splunk start --accept-license --answer-yes
+
+- name: Intigrating splunk with splunk server
+  command: /opt/splunkforwarder/bin/splunk set deploy-poll 10.7.1.5:8089 -auth admin:changeme
+
+- name: restaring splunk
+  command: /opt/splunkforwarder/bin/splunk restart
+
+- name: splunk enable boot-start 
+  command: /opt/splunkforwarder/bin/splunk enable boot-start -user splunk
+
+- name: splunk cron
+  cron:
+    name: "splunk-cron"
+    minute: "5"
+    job: "/path/to/wrapper/script.sh > /dev/null 2>&1"
+
+- name: enable splunk
+  service:
+    name: splunk
+    state: stopped
+    enabled: yes
+
+- name: splunk clone-prep-clear-config
+  command: /opt/splunkforwarder/bin/splunk clone-prep-clear-config
+
+- name: stopping rsyslog
+  service:
+    name: rsyslog
+    state: stopped
+
+- name: package-cleanup
+  command: /bin/package-cleanup --oldkernels --count=1
+
+- name: yum clean
+  command: yum clean all
+
+- name: logrotate
+  command: logrotate –f /etc/logrotate.conf
+  ignore_errors: yes
+
+- name: removeing dmesg log files
+  file:
+    path: /var/log/dmesg.old
+    state: absent
+
+- name: removeing anaconda log files
+  file:
+    path: /var/log/anaconda
+    state: absent
+
+- name: removeing tmp contents
+  file:
+    path: /tmp/*
+    state: absent
+
+- name: removeing /var/tmp/ contents
+  file:
+    path: /var/tmp/*
+    state: absent
+
+- name: removeing /root/.bash_history file
+  file:
+    path: /root/.bash_history
+    state: absent
+
+
