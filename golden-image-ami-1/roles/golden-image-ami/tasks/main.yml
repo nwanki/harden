@@ -1,5 +1,3 @@
-
-
 - name: install or upgrade openjdk 1.8
   yum:
     name: java-1.8.*-openjdk
@@ -122,11 +120,11 @@
 - name: Modify user parameters for all users with a password set to match
   command: chage --inactive 30 centos
 
-- name: Modify user parameters for all users with a password set to match
-  command: chage --inactive 30 operations
+#- name: Modify user parameters for all users with a password set to match
+#  command: chage --inactive 30 operations
 
-- name: Modify user parameters for all users with a password set to match
-  command: chage --inactive 30 splunk
+#- name: Modify user parameters for all users with a password set to match
+#  command: chage --inactive 30 splunk
 
 - name: set unmask on /etc/bashrc
   lineinfile:
@@ -151,36 +149,36 @@
     state: absent
     remove: yes
 
-- name: Download qualys agent
-  command: aws s3 cp s3://csbs-cis/qualys-cloud-agent.x86_64.rpm /opt
+#- name: Download qualys agent
+#  command: aws s3 cp s3://csbs-cis/qualys-cloud-agent.x86_64.rpm /opt
 
-- name: Installed qualys agent
-  command: yum install -y /opt/qualys-cloud-agent.x86_64.rpm
+#- name: Installed qualys agent
+#  command: yum install -y /opt/qualys-cloud-agent.x86_64.rpm
 
-- name: Download splunk agent
-  command: aws s3 cp s3://csbs-cis/splunk_6.6.3_current/splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-x86_64.rpm /opt
+#- name: Download splunk agent
+#  command: aws s3 cp s3://csbs-cis/splunk_6.6.3_current/splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-x86_64.rpm /opt
 
-- name: Installed qualys agent
-  command: yum install -y /opt/splunk_6.6.3_current/splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-x86_64.rpm
+#- name: Installed qualys agent
+#  command: yum install -y /opt/splunk_6.6.3_current/splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-x86_64.rpm
   
-- name: Changing permission to splunkforwarder
-  file:
-    path: /opt/splunkforwarder
-    recurse: yes
-    owner: splunk
-    group: splunk
+#- name: Changing permission to splunkforwarder
+#  file:
+#    path: /opt/splunkforwarder
+#    recurse: yes
+#    owner: splunk
+#    group: splunk
 
-- name: splunk accept-license
-  command: /opt/splunkforwarder/bin/splunk start --accept-license --answer-yes
+#- name: splunk accept-license
+#  command: /opt/splunkforwarder/bin/splunk start --accept-license --answer-yes
 
-- name: Intigrating splunk with splunk server
-  command: /opt/splunkforwarder/bin/splunk set deploy-poll 10.7.1.5:8089 -auth admin:changeme
+#- name: Intigrating splunk with splunk server
+#  command: /opt/splunkforwarder/bin/splunk set deploy-poll 10.7.1.5:8089 -auth admin:changeme
 
-- name: restaring splunk
-  command: /opt/splunkforwarder/bin/splunk restart
+#- name: restaring splunk
+#  command: /opt/splunkforwarder/bin/splunk restart
 
-- name: splunk enable boot-start 
-  command: /opt/splunkforwarder/bin/splunk enable boot-start -user splunk
+#- name: splunk enable boot-start 
+#  command: /opt/splunkforwarder/bin/splunk enable boot-start -user splunk
 
 - name: splunk cron
   cron:
@@ -188,14 +186,14 @@
     minute: "5"
     job: "/path/to/wrapper/script.sh > /dev/null 2>&1"
 
-- name: enable splunk
-  service:
-    name: splunk
-    state: stopped
-    enabled: yes
+#- name: enable splunk
+#  service:
+#    name: splunk
+#    state: stopped
+#    enabled: yes
 
-- name: splunk clone-prep-clear-config
-  command: /opt/splunkforwarder/bin/splunk clone-prep-clear-config
+#- name: splunk clone-prep-clear-config
+#  command: /opt/splunkforwarder/bin/splunk clone-prep-clear-config
 
 - name: stopping rsyslog
   service:

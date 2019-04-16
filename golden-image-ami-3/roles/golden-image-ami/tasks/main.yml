@@ -1,0 +1,70 @@
+---
+#- name: Verified ENA module installed
+#  command: modinfo ena
+
+#- name: Update initramfs
+#  command: dracut -f -v
+
+#- name: Disable predictable network interface names
+#  command: sudo sed -i '/^GRUB_CMDLINE_LINUX/s/\"$/\ net\.ifnames\=0\"/' /etc/default/grub
+
+#- name: Rebuild the grub
+#  command: sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+
+- name: removeing /etc/udev/rules.d/70-persistent-net.rules file
+  file:
+    path: /etc/udev/rules.d/70-persistent-net.rules
+    state: absent
+
+#- name: enable splunk
+#  service:
+#    name: splunk
+#    state: stopped
+
+#- name: splunk clone-prep-clear-config
+#  command: /opt/splunkforwarder/bin/splunk clone-prep-clear-config
+
+#- name: Run CrowdStrike/falconctl 
+#  command: /opt/CrowdStrike/falconctl -d -f –aid
+
+- name: stopping rsyslog
+  service:
+    name: rsyslog
+    state: stopped
+
+- name: package-cleanup
+  command: /bin/package-cleanup --oldkernels --count=1
+
+- name: yum clean
+  command: yum clean all
+
+- name: logrotate
+  command: logrotate –f /etc/logrotate.conf
+  ignore_errors: yes
+
+- name: removeing dmesg log files
+  file:
+    path: /var/log/dmesg.old
+    state: absent
+
+- name: removeing anaconda log files
+  file:
+    path: /var/log/anaconda
+    state: absent
+
+- name: removeing tmp contents
+  file:
+    path: /tmp/*
+    state: absent
+
+- name: removeing /var/tmp/ contents
+  file:
+    path: /var/tmp/*
+    state: absent
+
+- name: removeing /root/.bash_history file
+  file:
+    path: /root/.bash_history
+    state: absent
+
+

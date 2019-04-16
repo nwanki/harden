@@ -1,0 +1,69 @@
+---
+
+#- name: Download falcon-sensor
+#  command: aws s3 cp s3://csbs-cis//falcon-sensor-4.18.0-6403.el7.x86_64.rpm /opt
+
+#- name: Install falcon-sensor
+#  command: yum install falcon-sensor-4.18.0-6403.el7.x86_64.rpm
+
+#- name: run CrowdStrike/falconctl
+#  command: /opt/CrowdStrike/falconctl -s –cid=
+
+#- name: start falcon-sensor
+#  service:
+#    name: falcon-sensor
+#    state: started
+#    enabled: yes
+
+#- name: Run CrowdStrike/falconctl 
+#  command: /opt/CrowdStrike/falconctl -d -f –aid
+
+#- name: start splunk
+#  service:
+#    name: splunk
+#    state: stopped
+
+#- name: Run splunk clone-prep-clear-config 
+#  command: /opt/splunkforwarder/bin/splunk clone-prep-clear-config
+
+- name: stopping rsyslog
+  service:
+    name: rsyslog
+    state: stopped
+
+- name: package-cleanup
+  command: /bin/package-cleanup --oldkernels --count=1
+
+- name: yum clean
+  command: yum clean all
+
+- name: logrotate
+  command: logrotate –f /etc/logrotate.conf
+  ignore_errors: yes
+
+- name: removeing dmesg log files
+  file:
+    path: /var/log/dmesg.old
+    state: absent
+
+- name: removeing anaconda log files
+  file:
+    path: /var/log/anaconda
+    state: absent
+
+- name: removeing tmp contents
+  file:
+    path: /tmp/*
+    state: absent
+
+- name: removeing /var/tmp/ contents
+  file:
+    path: /var/tmp/*
+    state: absent
+
+- name: removeing /root/.bash_history file
+  file:
+    path: /root/.bash_history
+    state: absent
+
+
