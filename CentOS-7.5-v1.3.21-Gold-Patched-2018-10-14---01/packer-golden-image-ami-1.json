@@ -1,0 +1,33 @@
+{
+  "variables": {
+    "aws_access_key": "",
+    "aws_secret_key": ""
+  },
+  "builders": [{
+    "type": "amazon-ebs",
+    "access_key": "{{user `aws_access_key`}}",
+    "secret_key": "{{user `aws_secret_key`}}",
+    "region": "us-east-2",
+    "source_ami": "ami-0f2b4fc905b0bd1f1",
+    "instance_type": "t2.micro",
+    "ssh_username": "centos",
+    "ami_name": "packer-ami-1-{{timestamp}}"
+  }],
+
+  "provisioners": [
+   {
+      "type": "shell-local",
+      "command": "tar cf ../CentOS-7.5-v1.3.21-Gold-Patched-2018-10-14---01.tar ../CentOS-7.5-v1.3.21-Gold-Patched-2018-10-14---01"
+   },
+   {
+      "type": "file",
+      "source": "../CentOS-7.5-v1.3.21-Gold-Patched-2018-10-14---01.tar",
+      "destination": "/home/centos/CentOS-7.5-v1.3.21-Gold-Patched-2018-10-14---01.tar"
+   },
+   {
+      "type": "shell",
+      "script": "provision.sh"
+   }
+   
+  ]
+}

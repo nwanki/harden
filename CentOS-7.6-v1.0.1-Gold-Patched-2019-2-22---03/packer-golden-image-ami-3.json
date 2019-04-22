@@ -1,0 +1,33 @@
+{
+  "variables": {
+    "aws_access_key": "",
+    "aws_secret_key": ""
+  },
+  "builders": [{
+    "type": "amazon-ebs",
+    "access_key": "{{user `aws_access_key`}}",
+    "secret_key": "{{user `aws_secret_key`}}",
+    "region": "us-east-2",
+    "source_ami": "ami-0f2b4fc905b0bd1f1",
+    "instance_type": "t2.micro",
+    "ssh_username": "centos",
+    "ami_name": "packer-ami-3-{{timestamp}}"
+  }],
+
+  "provisioners": [
+   {
+      "type": "shell-local",
+      "command": "tar cf ../CentOS-7.6-v1.0.1-Gold-Patched-2019-2-22---03.tar ../CentOS-7.6-v1.0.1-Gold-Patched-2019-2-22---03"
+   },
+   {
+      "type": "file",
+      "source": "../CentOS-7.6-v1.0.1-Gold-Patched-2019-2-22---03.tar",
+      "destination": "/home/centos/CentOS-7.6-v1.0.1-Gold-Patched-2019-2-22---03.tar"
+   },
+   {
+      "type": "shell",
+      "script": "provision.sh"
+   }
+   
+  ]
+}
