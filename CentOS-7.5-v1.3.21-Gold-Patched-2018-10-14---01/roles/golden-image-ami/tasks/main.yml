@@ -3,20 +3,69 @@
     name: java-1.8.*-openjdk
     state: latest
 
-#- name: Download CIS-CAT shell script
+- name: Download CIS-CAT shell script
+  command: aws s3 sync s3://csbs-cis-sandbox/cis-cat-full /opt/cis-cat-full
 
-#- name: giving execure permission
-#  file:
-#    path: /tmp/CIS-CAT.sh
-#    mode: 0755
+- name: giving execure permission
+  file:
+    path: /opt/cis-cat-full/CIS-CAT.sh
+    mode: 0755
 
-#- name: Executing CIS-CAT.sh and returing the result
-#  shell: CIS-CAT.sh -b benchmarks/CIS_CentOS_Linux_7_Benchmark_v2.2.0-xccdf.xml
-#  register: command_output_full
-#  args:
-#    chdir: /tmp/
+- name: 1.5.3 Ensure address space layout randomization (ASLR) is enabled
+  lineinfile:
+    path: /etc/sysctl.conf
+    regexp: '^kernel.randomize_va_space'
+    line: 'kernel.randomize_va_space = 2'
 
-#- debug: msg="{{ command_output }}"
+- name: Ensure mounting of cramfs filesystems is disabled
+  lineinfile:
+    path: /etc/modprobe.d/CIS.conf
+    regexp: '^install cramfs /bin/true'
+    line: 'install cramfs /bin/true'
+
+- name: Ensure mounting of freevxfs filesystems is disabled
+  lineinfile:
+    path: /etc/modprobe.d/CIS.conf
+    regexp: '^install freevxfs /bin/true'
+    line: 'install freevxfs /bin/true'
+
+- name: Ensure mounting of jffs2 filesystems is disabled
+  lineinfile:
+    path: /etc/modprobe.d/CIS.conf
+    regexp: '^install jffs2 /bin/true'
+    line: 'install jffs2 /bin/true'
+
+- name: Ensure mounting of hfs filesystems is disabled
+  lineinfile:
+    path: /etc/modprobe.d/CIS.conf
+    regexp: '^install hfs /bin/true'
+    line: 'install hfs /bin/true'
+
+- name: Ensure mounting of hfsplus filesystems is disabled
+  lineinfile:
+    path: /etc/modprobe.d/CIS.conf
+    regexp: '^install hfsplus /bin/true'
+    line: 'install hfsplus /bin/true'
+
+- name: Ensure mounting of squashfs filesystems is disabled
+  lineinfile:
+    path: /etc/modprobe.d/CIS.conf
+    regexp: '^install squashfs /bin/true'
+    line: 'install squashfs /bin/true'
+
+- name: Ensure mounting of udf filesystems is disabled
+  lineinfile:
+    path: /etc/modprobe.d/CIS.conf
+    regexp: '^install udf /bin/true'
+    line: 'install udf /bin/true'
+
+- name: Ensure noexec option set on /dev/shm partition
+  command: mount -o remount,noexec /dev/shm
+
+- name: Ensure AIDE is installed
+  yum:
+    name: aide
+    state: present
 
 - name: aide runs at 5. Creates an entry like "0 5 * * /usr/sbin/aide --check > /dev/null"
   cron:
@@ -25,26 +74,101 @@
     hour: "5"
     job: "/usr/sbin/aide --check > /dev/null"
 
-- name: giving permission to grub
+- name: Ensure permissions on bootloader config are configured
   file:
     path: /boot/grub2/grub.cfg
     mode: 0600
     owner: root
     group: root 
 
-- name: 1.5.3 Ensure address space layout randomization (ASLR) is enabled
+- name: Ensure core dumps are restricted
+  lineinfile:
+    path: /etc/security/limits.conf
+    regexp: '^hard core 0'
+    line: 'hard core 0'
+
+- name: Ensure NFS not enabled 
+  service:
+    name: nfs
+    state: stopped
+    enabled: no
+
+- name: Ensure RPC not enabled 
+  service:
+    name: rpcbind
+    state: stopped
+    enabled: no
+
+- name: Ensure IP forwarding is disabled
   lineinfile:
     path: /etc/sysctl.conf
-    regexp: '^kernel.randomize_va_space'
-    line: 'kernel.randomize_va_space = 2'
+    regexp: '^net.ipv4.ip_forward = 0'
+    line: 'net.ipv4.ip_forward = 0'
+
+
+- name: Ensure packet redirect sending is disabled 
+  lineinfile:
+    path: /etc/sysctl.conf
+    regexp: '^net.ipv4.conf.all.send_redirects = 0'
+    line: 'net.ipv4.conf.all.send_redirects = 0'
+
+- name: Ensure packet redirect sending is disabled 
+  lineinfile:
+    path: /etc/sysctl.conf
+    regexp: '^net.ipv4.conf.default.send_redirects = 0'
+    line: 'net.ipv4.conf.default.send_redirects = 0'
+
+
+- name: Ensure source routed packets are not accepted
+  command: sysctl -w net.ipv4.conf.all.accept_source_route=0 
+
+- name: Ensure source routed packets are not accepted
+  command: sysctl -w net.ipv4.conf.default.accept_source_route=0
+
+- name: Ensure ICMP redirects are not accepted
+  command: sysctl -w net.ipv4.conf.all.accept_redirects=0
+
+- name: Ensure ICMP redirects are not accepted
+  command: sysctl -w net.ipv4.conf.default.accept_redirects=0 
+
+- name: Ensure secure ICMP redirects are not accepted
+  command: sysctl -w net.ipv4.conf.all.secure_redirects=0
+
+- name: Ensure secure ICMP redirects are not accepted
+  command: sysctl -w net.ipv4.conf.default.secure_redirects=0 
+
+- name: Ensure suspicious packets are logged 
+  command: sysctl -w net.ipv4.conf.all.log_martians=1 
+
+- name: Ensure suspicious packets are logged 
+  command: sysctl -w net.ipv4.conf.default.log_martians=1
+
+- name: Ensure broadcast ICMP requests are ignored 
+  command: sysctl -w net.ipv4.icmp_echo_ignore_broadcasts=1 
+
+- name: Ensure bogus ICMP responses are ignored
+  command: sysctl -w net.ipv4.icmp_ignore_bogus_error_responses=1
+
+- name: Ensure Reverse Path Filtering is enabled 
+  command: sysctl -w net.ipv4.conf.all.rp_filter=1 
+
+- name: Ensure Reverse Path Filtering is enabled 
+  command: sysctl -w net.ipv4.conf.default.rp_filter=1 
+
+- name: Ensure TCP SYN Cookies is enabled  
+  command: sysctl -w net.ipv4.tcp_syncookies=1 
 
 - name: Run the following command to set the active kernel parameter
   command: sysctl -w kernel.randomize_va_space=2
+
+- name: Ensure source routed packets are not accepted
+  command: sysctl -w net.ipv4.route.flush=1
 
 - name: remove the X Windows System packages
   yum:
     name: xorg-x11*
     state: absent
+
 
 #- name: /etc/hosts.deny is configured to deny
 #  lineinfile:
@@ -58,11 +182,85 @@
 #    chain: INPUT
 #    jump: DROP
 
-#- name: rsyslog is configured to send logs to a remote log host
-#  lineinfile:
-#    path: /etc/rsyslog.conf
-#    regexp: '#*.* @@remote-host:514'
-#    line: '*.* @@loghost.example.com'
+- name: Ensure rsyslog default file permissions configured
+  lineinfile:
+    path: /etc/rsyslog.conf
+    regexp: '^$FileCreateMode 0640'
+    line: '$FileCreateMode 0640'
+
+- name: rsyslog is configured to send logs to a remote log host
+  lineinfile:
+    path: /etc/rsyslog.conf
+    regexp: '#*.* @@remote-host:514'
+    line: '*.* @@loghost.example.com'
+
+- name: Ensure permissions on all logfiles are configured
+  command: find /var/log -type f -exec chmod g-wx,o-rwx {} +
+
+- name: Ensure permissions on /etc/crontab are configured
+  file:
+    path: /etc/crontab 
+    mode: 0600
+    owner: root
+    group: root 
+
+- name: Ensure permissions on /etc/cron.hourly are configured
+  file:
+    path: /etc/cron.hourly 
+    mode: 0600
+    owner: root
+    group: root 
+
+- name: Ensure permissions on /etc/cron.daily are configured
+  file:
+    path: /etc/cron.daily  
+    mode: 0600
+    owner: root
+    group: root 
+
+- name: Ensure permissions on /etc/cron.weekly are configured
+  file:
+    path: /etc/cron.weekly 
+    mode: 0600
+    owner: root
+    group: root 
+
+- name: Ensure permissions on /etc/cron.monthly are configured
+  file:
+    path: /etc/cron.monthly
+    mode: 0600
+    owner: root
+    group: root 
+
+- name: Ensure permissions on /etc/cron.d are configured
+  file:
+    path: /etc/cron.d
+    mode: 0700
+    state: directory
+    owner: root
+    group: root 
+
+
+- name: Ensure at/cron is restricted to authorized users
+  file:
+    path: /etc/cron.deny 
+    state: absent
+
+- name: Ensure at/cron is restricted to authorized users
+  file:
+    path: /etc/cron.allow 
+    mode: 0600
+    state: touch
+    owner: root
+    group: root 
+
+- name: Ensure at/cron is restricted to authorized users
+  file:
+    path: /etc/at.allow
+    mode: 0600
+    state: touch
+    owner: root
+    group: root 
 
 #- name: command to restart rsyslog
 #  command: pkill -HUP rsyslogd
@@ -74,11 +272,6 @@
     mode: 0700
     owner: root
     group: root
-
-- name: remove /etc/cron.deny and /etc/at.deny 
-  file:
-    path: ['/etc/cron.deny', '/etc/at.deny']
-    state: absent
 
 - name: create and set permissions and ownership for /etc/cron.allow
   file:
@@ -96,12 +289,73 @@
     group: root
     mode: 0600
 
+- name: Ensure permissions on /etc/ssh/sshd_config are configured
+  file:
+    path: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: 0600
+
+- name: Ensure SSH Protocol is set to 2
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^Protocol 2'
+    line: 'Protocol 2'
+
+- name: Ensure SSH LogLevel is set to INFO 
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^LogLevel INFO'
+    line: 'LogLevel INFO'
+
 - name: set X11Forwarding to no in sshd
   lineinfile:
     path: /etc/ssh/sshd_config
     regexp: '^X11Forwarding'
     line: 'X11Forwarding no'
- 
+
+- name: Ensure SSH MaxAuthTries is set to 4 or less 
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^MaxAuthTries 4'
+    line: 'MaxAuthTries 4'
+
+- name: Ensure SSH IgnoreRhosts is enabled 
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^IgnoreRhosts yes'
+    line: 'IgnoreRhosts yes'
+
+- name: Ensure SSH HostbasedAuthentication is disabled
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^HostbasedAuthentication no'
+    line: 'HostbasedAuthentication no'
+
+- name: Ensure SSH root login is disabled
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PermitRootLogin no'
+    line: 'PermitRootLogin no'
+
+- name: Ensure SSH PermitEmptyPasswords is disabled
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PermitEmptyPasswords no'
+    line: 'PermitEmptyPasswords no'
+
+- name: Ensure SSH PermitUserEnvironment is disabled
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PermitUserEnvironment no'
+    line: 'PermitUserEnvironment no'
+
+- name: Ensure only approved MAC algorithms are used
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com'
+    line: 'MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com'
+
 - name: set ClientAliveInterval to 300 in sshd
   lineinfile:
     path: /etc/ssh/sshd_config
@@ -114,11 +368,89 @@
     regexp: '^ClientAliveCountMax'
     line: 'ClientAliveCountMax 0'
 
+- name: Ensure SSH LoginGraceTime is set to one minute or less
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^LoginGraceTime 60'
+    line: 'LoginGraceTime 60'
+
+- name: Ensure SSH warning banner is configured 
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^Banner /etc/issue.net'
+    line: 'Banner /etc/issue.net'
+
+- name: Ensure password creation requirements are configured
+  lineinfile:
+    path: /etc/pam.d/password-auth
+    regexp: '^password requisite pam_pwquality.so try_first_pass retry=3'
+    line: 'password requisite pam_pwquality.so try_first_pass retry=3'
+
+- name: Ensure password creation requirements are configured 
+  lineinfile:
+    path: /etc/pam.d/system-auth
+    regexp: '^password requisite pam_pwquality.so try_first_pass retry=3'
+    line: 'password requisite pam_pwquality.so try_first_pass retry=3'
+
+- name: Ensure password creation requirements are configured 
+  lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: '^minlen=14'
+    line: 'minlen=14'
+
+- name: Ensure password creation requirements are configured 
+  lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: '^dcredit=-1'
+    line: 'dcredit=-1'
+
+- name: Ensure password creation requirements are configured 
+  lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: '^ucredit=-1'
+    line: 'ucredit=-1'
+
+- name: Ensure password creation requirements are configured 
+  lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: '^ocredit=-1'
+    line: 'ocredit=-1'
+
+- name: Ensure password creation requirements are configured 
+  lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: '^lcredit=-1'
+    line: 'lcredit=-1'
+
+- name: Ensure password reuse is limited
+  lineinfile:
+    path: /etc/pam.d/password-auth
+    regexp: '^password sufficient pam_unix.so remember=5'
+    line: 'password sufficient pam_unix.so remember=5'
+
+- name: Ensure password reuse is limited 
+  lineinfile:
+    path: /etc/pam.d/system-auth
+    regexp: '^password sufficient pam_unix.so remember=5'
+    line: 'password sufficient pam_unix.so remember=5'
+
+- name: Ensure password expiration is 90 days or less
+  lineinfile:
+    path: /etc/login.defs
+    regexp: '^PASS_MAX_DAYS 90'
+    line: 'PASS_MAX_DAYS 90'
+
 - name: command to set the default password inactivity period to 30 days
   command: useradd -D -f 30
 
-- name: Modify user parameters for all users with a password set to match
-  command: chage --inactive 30 centos
+#- name: Modify user parameters for all users with a password set to match
+#  command: chage --inactive 90 centos
+
+- name: Ensure minimum days between password changes is 7 or more
+  lineinfile:
+    path: /etc/login.defs
+    regexp: '^PASS_MIN_DAYS 7'
+    line: 'PASS_MIN_DAYS 7'
 
 #- name: Modify user parameters for all users with a password set to match
 #  command: chage --inactive 30 operations
@@ -149,36 +481,36 @@
     state: absent
     remove: yes
 
-#- name: Download qualys agent
-#  command: aws s3 cp s3://csbs-cis/qualys-cloud-agent.x86_64.rpm /opt
+- name: Download qualys agent
+  command: aws s3 cp s3://csbs-cis-sandbox/qualys-cloud-agent.x86_64.rpm /opt
 
-#- name: Installed qualys agent
-#  command: yum install -y /opt/qualys-cloud-agent.x86_64.rpm
+- name: Installed qualys agent
+  command: yum install -y /opt/qualys-cloud-agent.x86_64.rpm
 
-#- name: Download splunk agent
-#  command: aws s3 cp s3://csbs-cis/splunk_6.6.3_current/splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-x86_64.rpm /opt
+- name: Download splunk agent
+  command: aws s3 cp s3://csbs-cis-sandbox/splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-x86_64.rpm /opt
 
-#- name: Installed qualys agent
-#  command: yum install -y /opt/splunk_6.6.3_current/splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-x86_64.rpm
+- name: Installed qualys agent
+  command: yum install -y /opt/splunkforwarder-6.6.3-e21ee54bc796-linux-2.6-x86_64.rpm
   
-#- name: Changing permission to splunkforwarder
-#  file:
-#    path: /opt/splunkforwarder
-#    recurse: yes
-#    owner: splunk
-#    group: splunk
+- name: Changing permission to splunkforwarder
+  file:
+    path: /opt/splunkforwarder
+    recurse: yes
+    owner: splunk
+    group: splunk
 
-#- name: splunk accept-license
-#  command: /opt/splunkforwarder/bin/splunk start --accept-license --answer-yes
+- name: splunk accept-license
+  command: /opt/splunkforwarder/bin/splunk start --accept-license --answer-yes
 
-#- name: Intigrating splunk with splunk server
-#  command: /opt/splunkforwarder/bin/splunk set deploy-poll 10.7.1.5:8089 -auth admin:changeme
+- name: Intigrating splunk with splunk server
+  command: /opt/splunkforwarder/bin/splunk set deploy-poll 10.7.1.5:8089 -auth admin:changeme
 
-#- name: restaring splunk
-#  command: /opt/splunkforwarder/bin/splunk restart
+- name: restaring splunk
+  command: /opt/splunkforwarder/bin/splunk restart
 
-#- name: splunk enable boot-start 
-#  command: /opt/splunkforwarder/bin/splunk enable boot-start -user splunk
+- name: splunk enable boot-start 
+  command: /opt/splunkforwarder/bin/splunk enable boot-start -user splunk
 
 - name: splunk cron
   cron:
@@ -186,19 +518,32 @@
     minute: "5"
     job: "/path/to/wrapper/script.sh > /dev/null 2>&1"
 
-#- name: enable splunk
-#  service:
-#    name: splunk
-#    state: stopped
-#    enabled: yes
+- name: enable splunk
+  service:
+    name: splunk
+    state: stopped
+    enabled: yes
 
-#- name: splunk clone-prep-clear-config
-#  command: /opt/splunkforwarder/bin/splunk clone-prep-clear-config
+- name: splunk clone-prep-clear-config
+  command: /opt/splunkforwarder/bin/splunk clone-prep-clear-config
+  ignore_errors: yes
 
 - name: stopping rsyslog
   service:
     name: rsyslog
     state: stopped
+
+- name: Executing CIS-CAT.sh and returing the result
+  shell: sh CIS-CAT.sh -b benchmarks/CIS_CentOS_Linux_7_Benchmark_v2.2.0-xccdf.xml -a 
+  register: CIS_command_output_full
+  args:
+    chdir: /opt/cis-cat-full
+
+- debug: msg="{{ CIS_command_output_full }}"
+
+- name: Uploading CIS report to S3 bucket
+  command: aws s3 sync /root/CIS-CAT_Results/ s3://csbs-cis-sandbox/CIS-Reports/CIS-report-CentOS-7.5-v1.3.21-Gold-Patched-2018-10-14---01/
+
 
 - name: package-cleanup
   command: /bin/package-cleanup --oldkernels --count=1
@@ -234,5 +579,3 @@
   file:
     path: /root/.bash_history
     state: absent
-
-
